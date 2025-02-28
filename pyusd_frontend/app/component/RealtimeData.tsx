@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import useWebSocket from "../../webSocketHook";
 
 interface Transaction {
@@ -30,6 +31,32 @@ const RealTimeData = () => {
   );
   const supplyData = useWebSocket("ws://localhost:8000/ws/supply");
 
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (txData && txData.length > 0) {
+      setTransactions([...txData]); // Ensure state updates
+      setLastUpdated(new Date());
+    }
+  }, [txData]);
+
+  const timeSinceLastUpdate = () => {
+    const seconds = Math.floor(
+      (currentTime.getTime() - lastUpdated.getTime()) / 1000
+    );
+    return `${seconds} seconds ago`;
+  };
+
   return (
     <div className="p-6 max-w-4xl bg-[#0D0D1D] text-white rounded-lg shadow-lg h-[50%]">
       <div className="grid grid-cols-2 gap-6">
@@ -38,7 +65,9 @@ const RealTimeData = () => {
           <p className="text-xl font-bold text-blue-400">
             {supplyData?.total_supply}
           </p>
-          <p className="text-sm text-gray-400 mt-1">Updated just now</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Updated {timeSinceLastUpdate()}
+          </p>
         </div>
 
         <div className="bg-[#13132A] p-6 rounded-lg shadow-md">
@@ -46,7 +75,9 @@ const RealTimeData = () => {
           <p className="text-xl font-bold text-yellow-400">
             {gasData?.gas_price_gwei} Gwei
           </p>
-          <p className="text-sm text-gray-400 mt-1">Updated just now</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Updated {timeSinceLastUpdate()}
+          </p>
         </div>
       </div>
 
@@ -55,7 +86,7 @@ const RealTimeData = () => {
           Latest Transactions
         </h3>
         <ul className="mt-3 max-h-80 overflow-auto divide-y divide-gray-700">
-          {txData?.slice(0, 5).map((tx) => {
+          {transactions.map((tx) => {
             const formattedTx = {
               from_address: tx.from,
               to_address: tx.to,
@@ -76,7 +107,7 @@ const RealTimeData = () => {
               contractAddress: tx.contractAddress,
               tokenSymbol: tx.tokenSymbol,
             };
-            console.log(tx);
+            console.log("Updated Transactions:", transactions);
 
             return (
               <li
@@ -118,7 +149,7 @@ const RealTimeData = () => {
                   {formattedTx.confirmations}
                 </div>
                 <div className="text-gray-300">
-                  <span className="font-medium">Cummulative Gas Used:</span>{" "}
+                  <span className="font-medium">Cumulative Gas Used:</span>{" "}
                   {formattedTx.cummulativeGasUsed}
                 </div>
                 <div className="text-gray-300">
