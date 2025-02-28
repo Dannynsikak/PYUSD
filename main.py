@@ -47,7 +47,7 @@ def get_gas_price():
 def get_latest_transactions():
     url = f"https://api.etherscan.io/api?module=account&action=tokentx&contractaddress={PYUSD_CONTRACT}&apikey={ETHERSCAN_API_KEY}"
     response = requests.get(url).json()
-    return response["result"]
+    return response["result"][:100]
 
 @app.get("/pyusd/historical-supply")
 def get_historical_supply():
