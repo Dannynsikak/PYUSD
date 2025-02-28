@@ -1,44 +1,33 @@
 "use client";
+import { useState, useEffect } from "react";
 import useWebSocket from "../../webSocketHook";
-
-interface Transaction {
-  blockNumber: string;
-  timeStamp: string;
-  hash: string;
-  nonce: string;
-  blockHash: string;
-  from: string;
-  contractAddress: string;
-  to: string;
-  value: string;
-  tokenName: string;
-  tokenSymbol: string;
-  tokenDecimal: string;
-  transactionIndex: string;
-  gas: string;
-  gasPrice: string;
-  gasUsed: string;
-  cumulativeGasUsed: string;
-  input: string;
-  confirmations: string;
-}
 
 const RealTimeData = () => {
   const gasData = useWebSocket("ws://localhost:8000/ws/gas");
-  const txData: Transaction[] = useWebSocket(
-    "ws://localhost:8000/ws/transactions"
-  );
   const supplyData = useWebSocket("ws://localhost:8000/ws/supply");
+  const [txData, setTxData] = useState([]);
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8000/ws/transactions");
+
+    ws.onmessage = (event) => {
+      const newTx = JSON.parse(event.data);
+      setTxData((prevTxData) => {
+        const updatedTxData = [newTx, ...prevTxData];
+        return updatedTxData.slice(0, 20); // Keep only the latest 20 transactions
+      });
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-[#0D0D1D] text-white rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold text-center text-white pb-4">
-        PYUSD Real-Time Dashboard
-      </h2>
-
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-[#13132A] p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold text-gray-300"> PYUSD Supply</h3>
+          <h3 className="text-lg font-semibold text-gray-300">ETH Supply</h3>
           <p className="text-xl font-bold text-blue-400">
             {supplyData?.total_supply}
           </p>
@@ -58,20 +47,20 @@ const RealTimeData = () => {
         <h3 className="text-lg font-semibold text-gray-300 border-b pb-2">
           Latest Transactions
         </h3>
-        <ul className="mt-3 max-h-60 overflow-auto divide-y divide-gray-700">
-          {txData?.slice(0, 5).map((tx) => {
+        <ul className="mt-3 max-h-100 overflow-auto divide-y divide-gray-700">
+          {txData.map((tx, index) => {
             const formattedTx = {
               from_address: tx.from,
               to_address: tx.to,
               amount: (
-                Number.parseInt(tx.value) /
-                10 ** Number.parseInt(tx.tokenDecimal)
+                parseInt(tx.value) /
+                10 ** parseInt(tx.tokenDecimal)
               ).toFixed(2),
             };
 
             return (
               <li
-                key={tx.blockNumber}
+                key={index}
                 className="py-2 text-sm hover:bg-gray-700 px-2 transition-all rounded-lg"
               >
                 <span className="block text-gray-300">
