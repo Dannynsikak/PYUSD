@@ -26,15 +26,32 @@ const SupplyChart = () => {
 
       if (!Number.isNaN(supplyValue)) {
         setMarketData((prev) => {
-          const newMarketData = [
-            ...prev.slice(-20),
-            {
-              timestamp: Date.now(),
-              supply: supplyValue,
-            },
-          ];
-          console.log("🔄 Updated marketData:", newMarketData);
-          return newMarketData;
+          // Ensure we have at least one previous data point
+          if (prev.length > 0) {
+            const lastSupply = prev[prev.length - 1].supply;
+
+            // Only update the graph if supply increases or decreases
+            if (supplyValue !== lastSupply) {
+              const newMarketData = [
+                ...prev.slice(-20),
+                {
+                  timestamp: Date.now(),
+                  supply: supplyValue,
+                },
+              ];
+              console.log("🔄 Updated marketData:", newMarketData);
+              return newMarketData;
+            }
+          } else {
+            // First data point
+            return [
+              {
+                timestamp: Date.now(),
+                supply: supplyValue,
+              },
+            ];
+          }
+          return prev;
         });
       }
     }
