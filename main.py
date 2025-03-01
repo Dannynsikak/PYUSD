@@ -94,6 +94,26 @@ async def websocket_transactions(websocket: WebSocket):
     except WebSocketDisconnect:
         print("WebSocket connection closed")
 
+@app.websocket("/ws/price")
+async def websocket_price(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # fetch latest PYUSD price from CoinGecko API
+            response = requests.get(
+                "https://api.coingecko.com/api/v3/simple/price?ids=pyusd&vs_currencies=usd"
+            )
+            price_data = response.json()
+
+            # extract price
+            pyusd_price = price_data.get("pyusd", {}).get("usd","N/A")
+
+            # send price data to the client
+            await websocket.send_json({"pyusd_price": pyusd_price})
+            await asyncio.sleep(5)
+    except WebSocketDisconnect:
+        print("PYUSD Price WebSocket connection closed")
+
 
 @app.websocket("/ws/supply")
 async def websocket_supply(websocket: WebSocket):
