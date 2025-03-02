@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from web3 import Web3
-import requests
+import requests as req
 import os
 from dotenv import load_dotenv
 from database import initialize_db
@@ -12,6 +12,7 @@ load_dotenv()
 # load API keys from the .env file
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY")
 GPC_RPC_URL = os.getenv("GPC_RPC_URL")
+COINGECKO_API_URL = os.getenv("COINGECKO_API_URL")
 
 # connect to ethereum 
 w3 = Web3(Web3.HTTPProvider(GPC_RPC_URL))
@@ -34,7 +35,7 @@ PYUSD_CONTRACT = os.getenv('PYUSD_CONTRACT')
 @app.get("/pyusd/supply")
 def get_pyusd_supply():
     url = f"https://api.etherscan.io/api?module=stats&action=tokensupply&contractaddress={PYUSD_CONTRACT}&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(url).json()
+    response = req.get(url).json()
     return {"total_supply": response["result"]}
 
 
@@ -46,26 +47,43 @@ def get_gas_price():
 @app.get("/pyusd/transactions")
 def get_latest_transactions():
     url = f"https://api.etherscan.io/api?module=account&action=tokentx&contractaddress={PYUSD_CONTRACT}&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(url).json()
+    response = req.get(url).json()
     return response["result"][:100]
 
 @app.get("/pyusd/historical-supply")
 def get_historical_supply():
     url = f"https://api.etherscan.io/api?module=stats&action=tokensupplyhistory&contractaddress={PYUSD_CONTRACT}&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(url).json()
+    response = req.get(url).json()
     return {"historical_supply": response["result"]}
 
 @app.get("/pyusd/balance/{wallet_address}")
 def get_wallet_balance(wallet_address: str):
     url = f"https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress={PYUSD_CONTRACT}&address={wallet_address}&tag=latest&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(url).json()
+    response = req.get(url).json()
     return {"wallet_balance": response["result"]}
 
 @app.get("/pyusd/transaction/{tx_hash}")
 def get_transaction_details(tx_hash: str):
     url = f"https://api.etherscan.io/api?module=proxy&action=eth_getTransactionByHash&txhash={tx_hash}&apikey={ETHERSCAN_API_KEY}"
-    response = requests.get(url).json()
+    response = req.get(url).json()
     return response["result"]
+
+def fetch_pyusd_price():
+    """Fetch PYUSD price from coinGecko API"""
+    try:
+        response = req.get(COINGECKO_API_URL)
+        data = response.json()
+        return data.get("paypal-usd",{}).get("usd", "N/A")
+    except Exception as e:
+        print(f"Error fetching PYUSD price: {e}")
+        return "N/A"
+    
+@app.get("/pyusd/price")
+async def get_pyusd_price():
+    """Rest api endpoint to fetch PYUSD price"""
+    return {"pyusd_price": fetch_pyusd_price()}
+
+
 
 
 
@@ -99,21 +117,11 @@ async def websocket_price(websocket: WebSocket):
     await websocket.accept()
     try:
         while True:
-            # fetch latest PYUSD price from CoinGecko API
-            response = requests.get(
-                "https://api.coingecko.com/api/v3/simple/price?ids=pyusd&vs_currencies=usd"
-            )
-            price_data = response.json()
-
-            # extract price
-            pyusd_price = price_data.get("pyusd", {}).get("usd","N/A")
-
-            # send price data to the client
-            await websocket.send_json({"pyusd_price": pyusd_price})
+            price = fetch_pyusd_price()
+            await websocket.send_json({"pyusd_price": price})
             await asyncio.sleep(5)
     except WebSocketDisconnect:
-        print("PYUSD Price WebSocket connection closed")
-
+        print("WebSocket connection closed")
 
 @app.websocket("/ws/supply")
 async def websocket_supply(websocket: WebSocket):
