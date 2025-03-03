@@ -1,6 +1,7 @@
 import RealTimeData from "./component/RealtimeData";
 import BalanceChecker from "./component/balance";
 import SupplyChart from "./component/supplyChart";
+import Dashboard from "./component/market_dashboard";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       </div>
       <div className="">
         <BalanceChecker />
+        <Dashboard />
       </div>
     </div>
   );
