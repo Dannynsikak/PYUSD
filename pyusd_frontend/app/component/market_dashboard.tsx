@@ -1,19 +1,50 @@
 "use client";
 
-import { useState } from "react";
 import useWebSocket from "../../webSocketHook";
-import { Line } from "react-chartjs-2";
-import "chart.js/auto";
+import { Chart as ChartJS } from "chart.js/auto";
+import { TimeScale, LinearScale, Tooltip, Chart } from "chart.js";
+import { CandlestickController } from "chartjs-chart-financial";
+import { CandlestickElement } from "chartjs-chart-financial";
+import { Chart as ReactChart } from "react-chartjs-2";
+import "chartjs-chart-financial";
+import "chartjs-adapter-date-fns";
 
 const API_WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+
+// Register the necessary components
+ChartJS.register(
+  CandlestickController,
+  CandlestickElement,
+  TimeScale,
+  LinearScale,
+  Tooltip
+);
 
 const Dashboard = () => {
   const marketData = useWebSocket(`${API_WS_URL}/ws/market-data`);
   const transactions = useWebSocket(`${API_WS_URL}/ws/market-transactions`);
 
-  const priceHistory = marketData?.price
-    ? [...(marketData?.priceHistory || []), marketData.price]
-    : [];
+  const priceHistory = marketData?.priceHistory || [];
+
+  // Transform priceHistory into candlestick format
+  const candleData = priceHistory.map((entry: any) => ({
+    t: entry.timestamp, // Assuming each entry has a timestamp field
+    o: entry.open,
+    h: entry.high,
+    l: entry.low,
+    c: entry.close,
+  }));
+
+  const chartData = {
+    labels: candleData.map((d) => new Date(d.t)),
+    datasets: [
+      {
+        label: "PYUSD Candlestick",
+        data: candleData,
+        borderColor: "#36A2EB",
+      },
+    ],
+  };
 
   return (
     <div className="p-6 bg-gray-900 text-white min-h-screen">
@@ -29,20 +60,21 @@ const Dashboard = () => {
           <p>FDV: ${marketData?.fdv || "Loading..."}</p>
         </div>
 
-        {/* Price Chart */}
+        {/* Candlestick Chart */}
         <div className="p-4 bg-gray-800 rounded-lg shadow-md col-span-2">
-          <h2 className="text-lg font-semibold">Price Chart</h2>
-          <Line
-            data={{
-              labels: priceHistory.map((_, index) => index),
-              datasets: [
-                {
-                  label: "PYUSD Price",
-                  data: priceHistory,
-                  borderColor: "#36A2EB",
-                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+          <h2 className="text-lg font-semibold">Candlestick Chart</h2>
+          <ReactChart
+            type="candlestick"
+            data={chartData}
+            options={{
+              responsive: true,
+              scales: {
+                x: {
+                  type: "time",
+                  time: { unit: "minute" },
+                  position: "bottom",
                 },
-              ],
+              },
             }}
           />
         </div>

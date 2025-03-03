@@ -6,6 +6,8 @@ import os
 from dotenv import load_dotenv
 from database import initialize_db
 import asyncio
+from datetime import datetime, timedelta, timezone
+
 
 load_dotenv()
 
@@ -49,7 +51,21 @@ def get_gas_price():
 def get_latest_transactions():
     url = f"https://api.etherscan.io/api?module=account&action=tokentx&contractaddress={PYUSD_CONTRACT}&apikey={ETHERSCAN_API_KEY}"
     response = req.get(url).json()
-    return response["result"][:100]
+    
+    if "result" not in response:
+        return {"error": "Invalid response from Etherscan API"}
+    
+    # Define the start  2023
+    start_of_2023 = datetime(2023, 1, 1, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc) # Get current date and time
+
+    # Filter transactions from 2023 up to date
+    transactions_from_2023 = [
+        tx for tx in response["result"]
+        if "timeStamp" in tx and start_of_2023.timestamp() <= int(tx["timeStamp"]) <= now.timestamp()
+    ]
+
+    return transactions_from_2023
 
 @app.get("/pyusd/historical-supply")
 def get_historical_supply():
@@ -118,6 +134,17 @@ def get_recent_transactions():
         }
     except Exception as e:
         return {"error": str(e)}
+    
+@app.websocket("/ws/pyusd/price")
+async def websocket_pyusd_price(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            pyusd_price = get_pyusd_price()
+            await websocket.send_json(pyusd_price)
+            await asyncio.sleep(5) # delay to avoid overwhelming the server
+    except WebSocketDisconnect:
+        print("Websocket connection closed")
 
 @app.websocket("/ws/market-data")
 async def websocket_market_data(websocket: WebSocket):
@@ -193,4 +220,5 @@ async def websocket_supply(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, ws_max_size=2**20)
+    uvicorn.run(app, host="0.0.0.0", port=8000, ws_max_size=2**20) # uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+

@@ -38,7 +38,7 @@ const RealTimeData = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000); // Update every second
+    }, 5000); // Update every second
 
     return () => clearInterval(interval);
   }, []);
@@ -52,7 +52,7 @@ const RealTimeData = () => {
 
   const timeSinceLastUpdate = () => {
     const seconds = Math.floor(
-      (currentTime.getTime() - lastUpdated.getTime()) / 1000
+      (currentTime.getTime() - lastUpdated.getTime()) / 5000
     );
     return `${seconds} seconds ago`;
   };
@@ -107,7 +107,7 @@ const RealTimeData = () => {
               contractAddress: tx.contractAddress,
               tokenSymbol: tx.tokenSymbol,
             };
-            console.log("Updated Transactions:", transactions);
+            // console.log("Updated Transactions:", transactions);
 
             return (
               <li
