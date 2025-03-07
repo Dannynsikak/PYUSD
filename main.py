@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from database import initialize_db
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 
 load_dotenv()
@@ -134,7 +134,7 @@ def get_recent_transactions():
         }
     except Exception as e:
         return {"error": str(e)}
-    
+
 @app.websocket("/ws/pyusd/price")
 async def websocket_pyusd_price(websocket: WebSocket):
     await websocket.accept()
@@ -217,6 +217,7 @@ async def websocket_supply(websocket: WebSocket):
             await asyncio.sleep(5)  # Add a delay to avoid overwhelming the server
     except WebSocketDisconnect:
         print("WebSocket connection closed")
+
 
 if __name__ == "__main__":
     import uvicorn
