@@ -41,6 +41,14 @@ def get_pyusd_supply():
     response = req.get(url).json()
     return {"total_supply": response["result"]}
 
+def get_ethhereum_gas_price():
+    url = f"https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey={ETHERSCAN_API_KEY}"
+    response = req.get(url).json()
+
+    if "result" in response:
+        return response["result"]["SafeGasPrice"] # return Safe Gas Price in Gwei
+    return None
+
 
 @app.get("/pyusd/gas")
 def get_gas_price():
