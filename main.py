@@ -24,7 +24,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*","http://localhost:3000"],  # Allow all origins (or specify allowed domains)
+    allow_origins=["*","http://localhost:3000"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,7 +46,7 @@ def get_ethhereum_gas_price():
     response = req.get(url).json()
 
     if "result" in response:
-        return response["result"]["SafeGasPrice"] # return Safe Gas Price in Gwei
+        return response["result"]["SafeGasPrice"]
     return None
 
 
@@ -63,7 +63,7 @@ def get_latest_transactions():
     if "result" not in response:
         return {"error": "Invalid response from Etherscan API"}
     
-    # Define the start  2023
+    
     start_of_2023 = datetime(2023, 1, 1, tzinfo=timezone.utc)
     now = datetime.now(timezone.utc) # Get current date and time
 
@@ -230,4 +230,3 @@ async def websocket_supply(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, ws_max_size=2**20) # uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
